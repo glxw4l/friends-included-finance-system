@@ -1,0 +1,10 @@
+{
+  "name": "friends-included-finance",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node local-dev.mjs",
+    "start": "node local-dev.mjs"
+  }
+}

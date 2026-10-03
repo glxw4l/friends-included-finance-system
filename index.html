@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#173c32">
+    <meta name="description" content="Friends Included wedding guest finance system">
+    <title>Friends Included | Finance system</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">FI</div>
+      <div class="brand-copy">
+        <p class="eyebrow">Friends Included Ltd</p>
+        <h1>Wedding finance system</h1>
+      </div>
+      <div class="owner-line"><span class="status-dot"></span><span id="student-name">Set student name before publishing</span></div>
+    </header>
+
+    <main class="page-shell">
+      <section class="intro-panel" aria-labelledby="intro-title">
+        <div>
+          <p class="eyebrow">Day 4 demonstration</p>
+          <h2 id="intro-title">Every transaction has a clear route.</h2>
+          <p>Submit sales and expenses, review Svetlana’s decisions, and follow the financial results from one place.</p>
+        </div>
+        <label class="role-picker" for="role-select">
+          <span>Demonstration role</span>
+          <select id="role-select" disabled><option>Loading roles…</option></select>
+        </label>
+      </section>
+
+      <div id="system-status" class="system-status" role="status" aria-live="polite">Connecting to the finance system…</div>
+      <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+      <div id="error" class="error-banner" role="alert" hidden></div>
+
+      <section id="manager-finances" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">Live ledger</p><h2>Financial results</h2></div>
+          <span class="as-of" id="last-updated"></span>
+        </div>
+        <div id="summary-cards" class="summary-grid"></div>
+        <div class="results-panel">
+          <div class="panel-heading"><div><p class="eyebrow">Project performance</p><h3>Income and costs</h3></div></div>
+          <div class="table-wrap"><table class="results-table">
+            <thead><tr><th scope="col">Measure</th><th scope="col">Project A</th><th scope="col">Project B</th><th scope="col">Company</th></tr></thead>
+            <tbody id="results-body"></tbody>
+          </table></div>
+          <div id="commission-totals" class="commission-strip"></div>
+        </div>
+      </section>
+
+      <section id="manager-approvals" class="work-section" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">Manager workspace</p><h2>Decisions to make</h2></div>
+          <span id="pending-count" class="count-pill">0 open</span>
+        </div>
+        <div id="approval-list" class="approval-list"></div>
+      </section>
+
+      <section id="entry-area" class="work-section" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">Transaction entry</p><h2 id="entry-heading">Submit a transaction</h2></div>
+          <p class="section-note">Amounts are recorded in euros. Transactions must already be paid or delivered.</p>
+        </div>
+        <div id="sale-entry" class="entry-panel" hidden>
+          <form id="sale-form" class="form-grid">
+            <label>Reference<input name="reference" placeholder="S01" maxlength="16" required></label>
+            <label>Customer<input name="customer" placeholder="Olivia Rose" required></label>
+            <label>Project<select name="project" required><option value="">Choose project</option><option value="A">Project A · Respectable Relatives</option><option value="B">Project B · Drunk University Friends</option></select></label>
+            <label>Sale amount (€)<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required></label>
+            <label class="wide-field">Description<input name="description" required></label>
+            <fieldset class="split-fieldset wide-field">
+              <legend>Proposed commission split · shares of the 10% pool</legend>
+              <label>Richard %<input name="richard" type="number" min="0" max="100" step="0.01" value="34" required></label>
+              <label>Anastasia %<input name="anastasia" type="number" min="0" max="100" step="0.01" value="33" required></label>
+              <label>Jean-Claude %<input name="jean_claude" type="number" min="0" max="100" step="0.01" value="33" required></label>
+              <p class="field-help">The three percentages must add up to 100%. Svetlana confirms or changes them before approval.</p>
+            </fieldset>
+            <div class="form-actions wide-field"><button class="primary-button" type="submit">Submit sale for approval</button><span class="form-feedback" aria-live="polite"></span></div>
+          </form>
+        </div>
+        <div id="expense-entry" class="entry-panel" hidden>
+          <form id="expense-form" class="form-grid">
+            <label>Reference<input name="reference" placeholder="E01" maxlength="16" required></label>
+            <label>Category<select name="category" required><option value="">Choose category</option><option>Materials</option><option>Travel</option><option>Other</option></select></label>
+            <label>Expense amount (€)<input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required></label>
+            <label>Proposed allocation<select name="proposed_allocation" required><option value="">Choose allocation</option><option value="A">Project A · Respectable Relatives</option><option value="B">Project B · Drunk University Friends</option><option value="company_overhead">Company overhead</option></select></label>
+            <label class="wide-field">Description<input name="description" required></label>
+            <div class="form-actions wide-field"><button class="primary-button" type="submit">Submit expense</button><span class="form-feedback" aria-live="polite"></span></div>
+          </form>
+        </div>
+        <div id="manager-linking" class="entry-panel manager-linking" hidden>
+          <div class="linking-copy"><p class="eyebrow">Telegram setup</p><h3>Link an employee to Telegram</h3><p>Ask the person to message the bot with <code>/id</code>. Link the numeric user ID here. They should then send <code>/start</code> so the bot can save a notification chat.</p></div>
+          <form id="link-form" class="link-form">
+            <label>Employee<select name="employeeId" required></select></label>
+            <label>Telegram user ID<input name="telegramUserId" inputmode="numeric" placeholder="Shown by /id" required></label>
+            <button class="primary-button" type="submit">Save Telegram link</button>
+            <span class="form-feedback" aria-live="polite"></span>
+          </form>
+          <div class="manager-tools"><button id="set-webhook" class="secondary-button" type="button">Connect Telegram bot</button><p>Uses the setup secret stored in your browser for this session.</p></div>
+        </div>
+      </section>
+
+      <section id="records-section" class="work-section" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow" id="records-eyebrow">Activity</p><h2 id="records-heading">Transactions</h2></div>
+          <button id="refresh" class="text-button" type="button">Refresh records</button>
+        </div>
+        <div id="records-list" class="records-list"></div>
+      </section>
+
+      <section id="setup-card" class="setup-card" hidden>
+        <p class="eyebrow">First setup</p>
+        <h2>Connect the finance system</h2>
+        <p id="setup-message">This application needs its private service settings before it can read or write financial records.</p>
+        <ol>
+          <li>Apply the included SQL migration in your Supabase project.</li>
+          <li>Add the Supabase, Google Sheets, and Telegram settings to Vercel.</li>
+          <li>Redeploy the site, then open this page again.</li>
+        </ol>
+      </section>
+
+      <footer class="page-footer">
+        <div><strong>Friends Included Ltd</strong><span>All friendships expire at checkout.</span></div>
+        <div id="integration-links" class="integration-links"></div>
+      </footer>
+    </main>
+  </body>
+</html>
