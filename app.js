@@ -54,7 +54,7 @@ function setSectionVisibility(employee) {
   $('#manager-finances').hidden = !manager;
   $('#manager-approvals').hidden = !manager;
   $('#manager-linking').hidden = !manager;
-  $('#entry-area').hidden = !employee || manager;
+  $('#entry-area').hidden = !employee;
   $('#sale-entry').hidden = !['richard', 'anastasia', 'jean_claude'].includes(employee?.role);
   $('#expense-entry').hidden = employee?.role !== 'expense_reporter';
   $('#records-section').hidden = !employee;
@@ -115,10 +115,14 @@ function renderApprovals(rows) {
   }).join('');
 }
 
-function notificationStatus(row) {
-  const status = row.status === 'pending_approval' || row.status === 'awaiting_allocation'
+function relevantNotificationStatus(row) {
+  return row.status === 'pending_approval' || row.status === 'awaiting_allocation' || row.decision_notification_status === 'not_required'
     ? row.submission_notification_status
     : row.decision_notification_status;
+}
+
+function notificationStatus(row) {
+  const status = relevantNotificationStatus(row);
   if (status === 'no_recipient') return 'No Telegram recipient linked';
   if (status === 'failed') return 'Telegram notification failed';
   if (status === 'pending') return 'Telegram notification pending';
@@ -142,8 +146,7 @@ function renderRecords(rows, manager) {
     const sheets = row.sheets_sync_status === 'synced' ? '<span class="status-badge good">Sheets synced</span>' : `<span class="status-badge ${row.sheets_sync_status === 'failed' ? 'bad' : ''}">${row.sheets_sync_status === 'failed' ? 'Sheets sync failed' : 'Sheets sync pending'}</span>`;
     const telegram = notificationStatus(row);
     const telegramClass = telegram.includes('failed') ? 'bad' : (telegram.includes('sent') ? 'good' : '');
-    const relevantTelegramStatus = row.status === 'pending_approval' || row.status === 'awaiting_allocation'
-      ? row.submission_notification_status : row.decision_notification_status;
+    const relevantTelegramStatus = relevantNotificationStatus(row);
     const actions = manager ? `<div class="record-actions">${row.sheets_sync_status !== 'synced' ? `<button data-action="retry-sync" data-reference="${escapeHtml(row.reference)}">Retry Sheets sync</button>` : ''}${['failed','pending'].includes(relevantTelegramStatus) ? `<button data-action="retry-notification" data-reference="${escapeHtml(row.reference)}">Retry Telegram</button>` : ''}</div>` : '';
     return `<article class="record-card"><div class="record-grid"><div class="record-main"><div class="record-top"><span class="reference">${escapeHtml(row.reference)}</span><span class="record-title">${isSale ? 'Sale' : 'Expense'}</span><span class="record-subtitle">${escapeHtml(personName(row.submitted_by))} · ${escapeHtml(new Date(row.created_at).toLocaleString())}</span></div><div class="record-details"><span>${detail}</span><span>${proposal}</span></div>${actions}</div><div class="record-side"><span class="record-amount">${money(row.amount)}</span><span class="status-badge ${row.status === 'approved' || row.status === 'allocated' ? 'good' : ''}">${escapeHtml(statusName(row.status))}</span>${sheets}<span class="status-badge ${telegramClass}">${escapeHtml(telegram)}</span></div></div></article>`;
   }).join('');
@@ -253,7 +256,7 @@ document.addEventListener('click', async event => {
   try {
     if (action === 'approve-sale' || action === 'allocate-expense') {
       const controls = button.closest('[data-decision]');
-      const body = { actorId: state.roleId, reference };
+      const body = { actorId: state.roleId, reference: controls.dataset.reference };
       if (action === 'approve-sale') {
         body.action = 'approve_sale';
         body.approved_split = Object.fromEntries([...controls.querySelectorAll('[data-split]')].map(input => [input.dataset.split, input.value]));
@@ -262,7 +265,7 @@ document.addEventListener('click', async event => {
         body.final_allocation = controls.querySelector('[data-allocation]').value;
       }
       await api('/api/decisions', { method: 'POST', body: JSON.stringify(body) });
-      showNotice(`${reference} decision saved. The Sheets row and notification status have been updated.`);
+      showNotice(`${body.reference} decision saved. The Sheets row and notification status have been updated.`);
     } else if (action === 'retry-sync') {
       await api('/api/retry-sync', { method: 'POST', body: JSON.stringify({ actorId: state.roleId, reference }) });
       showNotice(`Sheets sync retried for ${reference}.`);
