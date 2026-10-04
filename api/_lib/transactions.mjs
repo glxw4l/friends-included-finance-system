@@ -122,6 +122,13 @@ export async function decideTransaction(reference, manager, decision) {
   if (manager.role !== 'manager') throw Object.assign(new Error('Only Svetlana can approve or allocate transactions.'), { status: 403 });
   const row = await getTransaction(reference);
   if (!row) throw Object.assign(new Error('No transaction has that reference.'), { status: 404 });
+  // Website submissions can be linked before the manager decides. Once a
+  // destination is saved, keep it; bot submissions always retain their chat.
+  let notificationChatId = row.notification_chat_id;
+  if (!notificationChatId && row.origin === 'website') {
+    const submitter = await getEmployee(row.submitted_by);
+    notificationChatId = submitter?.telegram_chat_id ? String(submitter.telegram_chat_id) : null;
+  }
   let patch;
   let expectedStatus;
   let sameFinal = false;
@@ -137,7 +144,9 @@ export async function decideTransaction(reference, manager, decision) {
       commission_amounts: commissions,
       decision_changed: !sameSplit(row.proposed_split, split),
       decided_by: manager.id, decided_at: new Date().toISOString(),
-      decision_notification_status: row.notification_chat_id ? 'pending' : 'no_recipient',
+      sheets_sync_status: 'pending', sheets_sync_error: null,
+      notification_chat_id: notificationChatId,
+      decision_notification_status: notificationChatId ? 'pending' : 'no_recipient',
       decision_notification_error: null
     };
   } else {
@@ -153,7 +162,9 @@ export async function decideTransaction(reference, manager, decision) {
       status: 'allocated', final_allocation: allocation,
       decision_changed: row.proposed_allocation !== allocation,
       decided_by: manager.id, decided_at: new Date().toISOString(),
-      decision_notification_status: row.notification_chat_id ? 'pending' : 'no_recipient',
+      sheets_sync_status: 'pending', sheets_sync_error: null,
+      notification_chat_id: notificationChatId,
+      decision_notification_status: notificationChatId ? 'pending' : 'no_recipient',
       decision_notification_error: null
     };
   }
@@ -207,22 +218,10 @@ export async function retryNotification(reference, manager) {
   if (manager.role !== 'manager') throw Object.assign(new Error('Only Svetlana can retry a Telegram notification.'), { status: 403 });
   const row = await getTransaction(reference);
   if (!row) throw Object.assign(new Error('No transaction has that reference.'), { status: 404 });
-  if (row.status === 'pending_approval' || row.status === 'awaiting_allocation') {
-    if (!row.notification_chat_id) {
-      await updateTransaction(reference, { submission_notification_status: 'no_recipient' });
-    } else {
-      try {
-        await sendTelegramMessage(row.notification_chat_id, row.kind === 'sale' ? saleSubmissionText(row) : expenseSubmissionText(row));
-        await updateTransaction(reference, { submission_notification_status: 'sent', submission_notification_error: null });
-      } catch (error) {
-        await updateTransaction(reference, { submission_notification_status: 'failed', submission_notification_error: String(error.message || error).slice(0, 1000) });
-      }
-    }
-  } else if (row.decision_notification_status !== 'not_required') {
+  if (row.status === 'pending_approval' || row.status === 'awaiting_allocation' || row.decision_notification_status === 'not_required') {
+    await sendSubmissionConfirmation(row);
+  } else {
     await sendDecisionNotification(row);
-  } else if (row.notification_chat_id) {
-    await sendTelegramMessage(row.notification_chat_id, row.kind === 'sale' ? saleSubmissionText(row) : expenseSubmissionText(row));
-    await updateTransaction(reference, { submission_notification_status: 'sent', submission_notification_error: null });
   }
   return getTransaction(reference);
 }
