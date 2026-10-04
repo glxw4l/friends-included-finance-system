@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       const [reference, customer, project, description, amount, richard, anastasia, jeanClaude] = cells;
       const transaction = await createTransaction({
         kind: 'sale', reference, customer, project, description, amount,
-        proposed_split: { richard: Number(richard), anastasia: Number(anastasia), jean_claude: Number(jeanClaude) }
+        proposed_split: { richard, anastasia, jean_claude: jeanClaude }
       }, employee, { origin: 'telegram', telegramUserId: userId, chatId });
       return sendJson(res, 200, { ok: true, reference: transaction.reference });
     }
