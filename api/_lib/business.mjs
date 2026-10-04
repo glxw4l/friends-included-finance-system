@@ -31,7 +31,11 @@ export function validateReference(reference, kind) {
 export function validateSplit(input) {
   const split = {};
   for (const key of SPLIT_KEYS) {
-    const value = Number(input?.[key]);
+    const raw = input?.[key];
+    if (raw === null || raw === undefined || (typeof raw === 'string' && !raw.trim())) {
+      throw new HttpError(400, `Enter the proposed commission percentage for ${SPLIT_NAMES[key]}.`);
+    }
+    const value = Number(raw);
     if (!Number.isFinite(value) || value < 0 || value > 100) throw new HttpError(400, 'Each proposed commission share must be between 0% and 100%.');
     if (Math.abs(value - Math.round(value * 100) / 100) > 0.0000001) throw new HttpError(400, 'Commission percentages can have at most two decimal places.');
     split[key] = value;
